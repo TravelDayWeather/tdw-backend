@@ -1,6 +1,5 @@
 package com.example.tdw_backend.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -9,22 +8,35 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    // HTTP 보안 설정을 구성하는 메서드
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .authorizeHttpRequests(authorizeRequests -> // HTTP 요청에 대한 보안 규칙 정의
-                        authorizeRequests
-                                .requestMatchers("/api/signup").permitAll()
-                                .anyRequest().authenticated() // 그 외의 모든 요청은 인증을 요구
-                )
-                .csrf(AbstractHttpConfigurer::disable);
-        return http.build(); // HTTP 보안 설정을 빌드하여 반환
+        http.csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(authz -> authz
+                        .requestMatchers("/api/**").permitAll()  // API 요청을 모두 허용
+                        .anyRequest().authenticated()); // 그 외 요청은 인증을 요구
+
+        return http.build();
+    }
+
+    @Bean
+    public CorsFilter corsFilter() {
+        // 기본 CORS 필터를 사용하여 요청을 처리합니다.
+        UrlBasedCorsConfigurationSource source;
+        source = new UrlBasedCorsConfigurationSource();
+        CorsConfiguration config = new CorsConfiguration();
+        config.addAllowedOrigin("http://localhost:3000");  // Vue 개발 서버 주소
+        config.addAllowedMethod("*");
+        config.addAllowedHeader("*");
+        source.registerCorsConfiguration("/**", config);
+        return new CorsFilter(source);
     }
 
     // 비밀번호 인코더를 정의
@@ -33,3 +45,6 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder(); // BCryptPasswordEncoder를 반환. 이는 비밀번호를 암호화하는 데 사용됨
     }
 }
+
+
+
