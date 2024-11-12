@@ -3,11 +3,11 @@ package com.example.tdw_backend.model;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 public class SignUpRequest {
-
-    private Long user_id;
 
     private String email;
 
@@ -19,5 +19,5 @@ public class SignUpRequest {
 
     private String phone;
 
-    private String joined_date;
+    private LocalDateTime joined_date;
 }

@@ -5,22 +5,24 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.springframework.format.annotation.DateTimeFormat;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
 @Builder
 @ToString
 public class UserDto {
+    public Long userId;
+    public String email;
+    public String pw;
+    public String name;
+    public String nickname;
+    public String phone;
 
-    private Long userId;
-    private String email;
-    private String pw;
-    private String name;
-    private String nickname;
-    private String phone;
-    private String joinedDate;
+    @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    public LocalDateTime joinedDate;
 
     public static User toEntity(UserDto userDto) {
         return User.builder()
@@ -30,7 +32,7 @@ public class UserDto {
                 .name(userDto.getName())
                 .nickname(userDto.getNickname())
                 .phone(userDto.getPhone())
-                .joinedDate(Timestamp.valueOf(userDto.getJoinedDate()))
+                .joinedDate(userDto.getJoinedDate())
                 .build();
     }
 }

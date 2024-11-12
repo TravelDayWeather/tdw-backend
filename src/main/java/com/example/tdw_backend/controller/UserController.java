@@ -23,21 +23,14 @@ public class UserController {
     // 회원가입
     @PostMapping("/api/signup")
     public ResponseEntity<User> signUp(@RequestBody SignUpRequest signUpRequest) {
-        UserDto userDto = UserDto.builder()
-                .email(signUpRequest.getEmail())
-                .pw(signUpRequest.getPw())  // 비밀번호 필드도 요청에서 가져오기
-                .name(signUpRequest.getName())
-                .nickname(signUpRequest.getNickname())
-                .phone(signUpRequest.getPhone())
-                .joinedDate(java.time.LocalDateTime.now().toString())  // 현재 시간으로 설정
-                .build();
+        if (signUpRequest == null) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        User user = userService.signUp(signUpRequest);
 
-        User user = UserDto.toEntity(userDto);
+        return new ResponseEntity<>(user, HttpStatus.CREATED);
 
-        userService.signUp(user);
-
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
+}
 
 
     // 로그인

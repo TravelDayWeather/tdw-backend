@@ -1,7 +1,9 @@
 package com.example.tdw_backend.service;
 
+import com.example.tdw_backend.dto.UserDto;
 import com.example.tdw_backend.entity.User;
 import com.example.tdw_backend.model.LoginRequest;
+import com.example.tdw_backend.model.SignUpRequest;
 import com.example.tdw_backend.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -14,10 +16,12 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class UserServiceImpl implements UserService {
 
+    @Autowired
     private final UserRepository userRepository;
-    private PasswordEncoder passwordEncoder;
 
     @Autowired
+    private PasswordEncoder passwordEncoder;
+
     public UserServiceImpl(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
@@ -25,7 +29,15 @@ public class UserServiceImpl implements UserService {
 
     // 회원가입
     @Override
-    public User signUp(User user) {
+    public User signUp(SignUpRequest signUpRequest) {
+        User user = User.builder()
+                .email(signUpRequest.getEmail())
+                .pw(passwordEncoder.encode(signUpRequest.getPw()))
+                .name(signUpRequest.getName())
+                .nickname(signUpRequest.getNickname())
+                .phone(signUpRequest.getPhone())
+                .build();
+
         return userRepository.save(user);
     }
 

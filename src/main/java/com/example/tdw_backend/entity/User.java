@@ -5,9 +5,10 @@ import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.io.Serializable;
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 @Entity
 @Builder
@@ -19,25 +20,37 @@ public class User implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
-    private Long userId;
+    public Long userId;
 
     @Column(name = "email")
-    private String email;
+    public String email;
 
     @Column(name = "pw")
-    private String pw;
+    public String pw;
 
     @Column(name = "name")
-    private String name;
+    public String name;
 
     @Column(name = "nickname")
-    private String nickname;
+    public String nickname;
 
     @Column(name = "phone")
-    private String phone;
+    public String phone;
 
-    @Column(name = "joined_date")
-    private Timestamp joinedDate;
+    @CreationTimestamp  // 가입 시 자동으로 현재 시간이 저장됨
+    @Column(name = "joined_date", updatable = false)
+    public LocalDateTime joinedDate;
+
+    @Builder
+    public User(Long userId, String email, String pw, String name, String nickname, String phone, LocalDateTime joinedDate) {
+        this.userId = userId;
+        this.email = email;
+        this.pw = pw;
+        this.name = name;
+        this.nickname = nickname;
+        this.phone = phone;
+        this.joinedDate = joinedDate;
+    }
 
     public static UserDto toDTO(User user) {
         return UserDto.builder()
@@ -47,7 +60,7 @@ public class User implements Serializable {
                 .name(user.getName())
                 .nickname(user.getNickname())
                 .phone(user.getPhone())
-                .joinedDate(String.valueOf(user.getJoinedDate()))
+                .joinedDate(user.getJoinedDate())
                 .build();
     }
 }
