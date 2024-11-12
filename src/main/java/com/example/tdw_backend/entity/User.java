@@ -2,9 +2,7 @@ package com.example.tdw_backend.entity;
 
 import com.example.tdw_backend.dto.UserDto;
 import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.io.Serializable;
@@ -14,6 +12,8 @@ import java.time.LocalDateTime;
 @Builder
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 @Table(name = "user")
 public class User implements Serializable {
 
@@ -40,17 +40,6 @@ public class User implements Serializable {
     @CreationTimestamp  // 가입 시 자동으로 현재 시간이 저장됨
     @Column(name = "joined_date", updatable = false)
     public LocalDateTime joinedDate;
-
-    @Builder
-    public User(Long userId, String email, String pw, String name, String nickname, String phone, LocalDateTime joinedDate) {
-        this.userId = userId;
-        this.email = email;
-        this.pw = pw;
-        this.name = name;
-        this.nickname = nickname;
-        this.phone = phone;
-        this.joinedDate = joinedDate;
-    }
 
     public static UserDto toDTO(User user) {
         return UserDto.builder()
