@@ -1,10 +1,13 @@
 package com.example.tdw_backend.service;
 
+import com.example.tdw_backend.entity.Token;
 import com.example.tdw_backend.entity.User;
 import com.example.tdw_backend.payload.LoginRequest;
+import com.example.tdw_backend.payload.LoginResponse;
 import com.example.tdw_backend.payload.SignUpRequest;
 import com.example.tdw_backend.repository.UserRepository;
 import com.example.tdw_backend.security.JwtTokenProvider;
+import com.example.tdw_backend.security.JwtTokenService;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +30,10 @@ public class UserServiceImpl implements UserService {
     private final AuthenticationManager authenticationManager;
 
     @Autowired
-    JwtTokenProvider tokenProvider;
+    private JwtTokenProvider jwtTokenProvider;
+
+    @Autowired
+    private JwtTokenService jwtTokenService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -55,12 +61,11 @@ public class UserServiceImpl implements UserService {
 
     // 로그인
     @Override
-    public User login(LoginRequest loginRequest) {
+    public LoginResponse login(LoginRequest loginRequest) {
         System.out.println("user Login:: " + loginRequest.getEmail() + " " +  loginRequest.getPw());
 
         User user = userRepository.findByEmail(loginRequest.getEmail())
-                .orElseThrow(() -> new UsernameNotFoundException("User with email "
-                        + loginRequest.getEmail() + " not found"));
+                .orElseThrow(() -> new UsernameNotFoundException("User with email " + loginRequest.getEmail() + " not found"));
 
         if (!passwordEncoder.matches(loginRequest.getPw(), user.getPw())) {
             throw new RuntimeException("Invalid credentials");
@@ -75,10 +80,12 @@ public class UserServiceImpl implements UserService {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        String jwt = tokenProvider.generateToken(authentication);
+        String accessToken = jwtTokenProvider.createAccessToken(user);  // AccessToken 발급
+        String refreshToken = jwtTokenProvider.createRefreshToken(user);
+        System.out.println("token:: " + accessToken + " refreshToken:: " +  refreshToken);
 
-        System.out.println("jwt:: " + jwt);
-        return user;
+
+        return new LoginResponse(user, accessToken, refreshToken);
     }
 
     // 이메일 중복체크

@@ -1,75 +1,85 @@
 package com.example.tdw_backend.security;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.tdw_backend.entity.User;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.UnsupportedJwtException;
-import io.jsonwebtoken.security.Keys;
-
-import java.nio.charset.StandardCharsets;
-import java.security.Key;
 import java.util.Date;
 
 @Component
 public class JwtTokenProvider {
 
-    private static final Logger logger = LoggerFactory.getLogger(JwtTokenProvider.class);
+    @Value("${app.jwtAccessExpirationInMs}")
+    private Long jwtAccessExpirationInMs;
+
+    @Value("${app.jwtRefreshExpirationInMs}")
+    private Long jwtRefreshExpirationInMs;
 
     @Value("${app.jwtSecret}")
     private String jwtSecret;
 
-    @Value("${app.jwtExpirationInMs}")
-    private int jwtExpirationInMs;
-
-    public String generateToken(Authentication authentication) {
-
-        UserPrincipal userPrincipal = (UserPrincipal)authentication.getPrincipal();
-
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
-
+    // AccessToken 생성
+    public String createAccessToken(User user) {
         return Jwts.builder()
-                .setSubject(Long.toString(userPrincipal.getUserId()))
+                .setSubject(user.getEmail())
                 .setIssuedAt(new Date())
-                .setExpiration(expiryDate)
-                .signWith(getSignKey())
+                .setExpiration(new Date(System.currentTimeMillis() + jwtAccessExpirationInMs))
+                .signWith(SignatureAlgorithm.HS512, jwtSecret)
                 .compact();
     }
 
-    public Long getUserIdFromJWT(String token) {
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(getSignKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-
-        return Long.parseLong(claims.getSubject());
+    // RefreshToken 생성
+    public String createRefreshToken(User user) {
+        return Jwts.builder()
+                .setSubject(user.getEmail())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + jwtRefreshExpirationInMs))
+                .signWith(SignatureAlgorithm.HS512, jwtSecret)
+                .compact();
     }
 
-    public boolean validateToken(String authToken) {
+    // Token 만료 확인
+    public boolean isTokenExpired(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(getSignKey()).build().parseClaimsJws(authToken);
+            Claims claims = Jwts.parser()
+                    .setSigningKey(jwtSecret)
+                    .parseClaimsJws(token)
+                    .getBody();
+            return claims.getExpiration().before(new Date());
+        } catch (Exception e) {
             return true;
-        } catch (MalformedJwtException ex) {
-            logger.error("Invalid JWT token");
-        } catch (ExpiredJwtException ex) {
-            logger.error("Expired JWT token");
-        } catch (UnsupportedJwtException ex) {
-            logger.error("Unsupported JWT token");
-        } catch (IllegalArgumentException ex) {
-            logger.error("JWT claims string is empty.");
         }
-        return false;
     }
 
-    private Key getSignKey() {
-        return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+    public Long getRefreshExpirationTime() {
+        return jwtRefreshExpirationInMs;
+    }
+
+    public Long getAccessExpirationTime() {
+        return jwtAccessExpirationInMs;
+    }
+
+    // JWT에서 사용자 ID 추출하는 메서드 추가
+    public Long getUserIdFromJWT(String token) {
+        Claims claims = Jwts.parser()
+                .setSigningKey(jwtSecret)  // 서명 키로 비밀 키를 사용
+                .parseClaimsJws(token)    // 토큰 파싱
+                .getBody();  // Claims 객체 반환
+
+        // 예를 들어, 사용자 ID는 'sub' 클레임에 저장된다고 가정하고 가져옵니다.
+        return Long.parseLong(claims.getSubject());  // 'subject'는 일반적으로 사용자 ID나 이메일 등을 저장
+    }
+
+    // JWT 유효성 검증 메서드 예시
+    public boolean validateToken(String token) {
+        try {
+            Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(token);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }
