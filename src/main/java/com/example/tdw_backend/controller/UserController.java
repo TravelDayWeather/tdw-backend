@@ -1,19 +1,35 @@
 package com.example.tdw_backend.controller;
 
+import com.example.tdw_backend.security.JwtTokenProvider;
 import com.example.tdw_backend.entity.User;
-import com.example.tdw_backend.model.LoginRequest;
-import com.example.tdw_backend.model.SignUpRequest;
+import com.example.tdw_backend.payload.JwtAuthenticationResponse;
+import com.example.tdw_backend.payload.LoginRequest;
+import com.example.tdw_backend.payload.SignUpRequest;
 import com.example.tdw_backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 public class UserController {
 
+    AuthenticationManager authenticationManager;
+
+    @Autowired
+    PasswordEncoder passwordEncoder;
+
+    @Autowired
+    JwtTokenProvider tokenProvider;
+
+    @Autowired
     private final UserService userService;
 
     @Autowired
@@ -40,7 +56,9 @@ public class UserController {
         }
         try {
             User user = userService.login(loginRequest);
-            return ResponseEntity.ok(user); // 성공적으로 로그인한 경우
+
+            return ResponseEntity.ok(user);
+//            return ResponseEntity.ok(new JwtAuthenticationResponse(jwt)); // 성공적으로 로그인한 경우
         } catch (UsernameNotFoundException e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);  // 이메일이 잘못된 경우
         } catch (BadCredentialsException e) {

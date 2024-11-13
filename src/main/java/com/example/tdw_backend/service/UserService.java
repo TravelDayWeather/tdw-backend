@@ -1,8 +1,8 @@
 package com.example.tdw_backend.service;
 
 import com.example.tdw_backend.entity.User;
-import com.example.tdw_backend.model.LoginRequest;
-import com.example.tdw_backend.model.SignUpRequest;
+import com.example.tdw_backend.payload.LoginRequest;
+import com.example.tdw_backend.payload.SignUpRequest;
 import org.springframework.stereotype.Service;
 
 @Service

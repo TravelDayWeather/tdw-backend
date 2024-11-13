@@ -1,15 +1,17 @@
 package com.example.tdw_backend.service;
 
-import com.example.tdw_backend.dto.UserDto;
 import com.example.tdw_backend.entity.User;
-import com.example.tdw_backend.model.LoginRequest;
-import com.example.tdw_backend.model.SignUpRequest;
+import com.example.tdw_backend.payload.LoginRequest;
+import com.example.tdw_backend.payload.SignUpRequest;
 import com.example.tdw_backend.repository.UserRepository;
+import com.example.tdw_backend.security.JwtTokenProvider;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,11 +24,17 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private final UserRepository userRepository;
 
+    private final AuthenticationManager authenticationManager;
+
+    @Autowired
+    JwtTokenProvider tokenProvider;
+
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository) {
+    public UserServiceImpl(UserRepository userRepository, AuthenticationManager authenticationManager) {
         this.userRepository = userRepository;
+        this.authenticationManager = authenticationManager;
     }
 
 
@@ -48,6 +56,8 @@ public class UserServiceImpl implements UserService {
     // 로그인
     @Override
     public User login(LoginRequest loginRequest) {
+        System.out.println("user Login:: " + loginRequest.getEmail() + " " +  loginRequest.getPw());
+
         User user = userRepository.findByEmail(loginRequest.getEmail())
                 .orElseThrow(() -> new UsernameNotFoundException("User with email "
                         + loginRequest.getEmail() + " not found"));
@@ -55,6 +65,19 @@ public class UserServiceImpl implements UserService {
         if (!passwordEncoder.matches(loginRequest.getPw(), user.getPw())) {
             throw new RuntimeException("Invalid credentials");
         }
+
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        loginRequest.getEmail(),
+                        loginRequest.getPw()
+                )
+        );
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        String jwt = tokenProvider.generateToken(authentication);
+
+        System.out.println("jwt:: " + jwt);
         return user;
     }
 

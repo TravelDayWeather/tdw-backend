@@ -1,4 +1,4 @@
-package com.example.tdw_backend.model;
+package com.example.tdw_backend.payload;
 
 import lombok.Getter;
 import lombok.Setter;
