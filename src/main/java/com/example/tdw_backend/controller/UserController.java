@@ -1,16 +1,14 @@
 package com.example.tdw_backend.controller;
 
 import com.example.tdw_backend.entity.Token;
-import com.example.tdw_backend.repository.TokenRepository;
 import com.example.tdw_backend.repository.UserRepository;
-import com.example.tdw_backend.security.JwtTokenProvider;
 import com.example.tdw_backend.entity.User;
 import com.example.tdw_backend.payload.JwtAuthenticationResponse;
 import com.example.tdw_backend.payload.LoginRequest;
 import com.example.tdw_backend.payload.SignUpRequest;
-import com.example.tdw_backend.security.JwtTokenValidator;
 import com.example.tdw_backend.security.JwtTokenService;
 import com.example.tdw_backend.service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +21,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 public class UserController {
 
@@ -82,10 +81,10 @@ public class UserController {
             // 인증 성공 후 SecurityContext에 설정
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            // Token 생성 (AccessToken이 포함된 Token 객체를 반환)
+            // Token 생성 및 저장
             Token token = jwtTokenService.loginOrRefreshToken(authentication);  // 로그인 또는 토큰 갱신
-            String accessToken = token.getAccessToken();  // accessToken 가져오기
-            String refreshToken = token.getRefreshToken();  // refreshToken 가져오기
+            String accessToken = token.getAccessToken();
+            String refreshToken = token.getRefreshToken();
 
             // 응답으로 JWT 포함
             return ResponseEntity.ok(new JwtAuthenticationResponse(accessToken, refreshToken));
@@ -96,6 +95,7 @@ public class UserController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);  // 기타 예외 처리
         }
     }
+
 
     // 이메일 중복체크
     @GetMapping("/api/users/validate-email")

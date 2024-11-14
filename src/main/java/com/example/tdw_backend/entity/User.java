@@ -7,6 +7,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Builder
@@ -37,9 +38,12 @@ public class User implements Serializable {
     @Column(name = "phone")
     public String phone;
 
-    @CreationTimestamp  // 가입 시 자동으로 현재 시간이 저장됨
+    @CreationTimestamp
     @Column(name = "joined_date", updatable = false)
     public LocalDateTime joinedDate;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<Token> tokens;  // 역방향 관계 설정
 
     public static UserDto toDTO(User user) {
         return UserDto.builder()

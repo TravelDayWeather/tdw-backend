@@ -21,7 +21,7 @@ public class Token implements Serializable {
     @Column(name = "token_id")
     private Long tokenId;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "user_id", referencedColumnName = "user_id")
     private User user;
 
