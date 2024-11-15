@@ -65,8 +65,7 @@ public class JwtTokenService {
             token.setAccessTokenExpiryDate(Instant.now().plusMillis(jwtTokenProvider.getAccessExpirationTime()));
             token.setRefreshTokenExpiryDate(null);
 
-            Token savedToken = tokenRepository.save(token);
-            return savedToken;
+            return tokenRepository.save(token);
         }
     }
 }

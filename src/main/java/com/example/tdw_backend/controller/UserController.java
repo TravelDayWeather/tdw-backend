@@ -82,13 +82,11 @@ public class UserController {
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             // Token 생성 및 저장
-            Token token = jwtTokenService.loginOrRefreshToken(authentication);  // 로그인 또는 토큰 갱신
+            Token token = jwtTokenService.loginOrRefreshToken(authentication);
             String accessToken = token.getAccessToken();
             String refreshToken = token.getRefreshToken();
 
-            // 응답으로 JWT 포함
             return ResponseEntity.ok(new JwtAuthenticationResponse(accessToken, refreshToken));
-
         } catch (BadCredentialsException e) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED); // 비밀번호가 틀린 경우
         } catch (Exception e) {

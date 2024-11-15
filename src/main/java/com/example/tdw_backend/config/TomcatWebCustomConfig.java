@@ -7,11 +7,6 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class TomcatWebCustomConfig implements WebServerFactoryCustomizer<TomcatServletWebServerFactory> {
 
-
-    // Invalid character found in the request target
-    // [/api/login?loginRequest[email]=test%40test.com1&loginRequest[pw]=12345678!! ].
-    // The valid characters are defined in RFC 7230 and RFC 3986
-
     @Override
     public void customize(TomcatServletWebServerFactory factory) {
         factory.addConnectorCustomizers(connector -> {

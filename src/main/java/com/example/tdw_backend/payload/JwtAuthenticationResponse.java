@@ -6,7 +6,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class JwtAuthenticationResponse {
-    // Getter 및 Setter
+
     private String accessToken;
     private String refreshToken;
 
