@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 @Transactional
 @Slf4j
@@ -48,5 +50,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean validateNickname(String nickname) {
         return userRepository.existsByNickname(nickname);
+    }
+
+    @Override
+    public Optional<User> getMyPage(Long userId) {
+        return Optional.ofNullable(userRepository.findByUserId(userId));
+
     }
 }

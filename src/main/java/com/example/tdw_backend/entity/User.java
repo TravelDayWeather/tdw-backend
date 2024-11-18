@@ -42,9 +42,6 @@ public class User implements Serializable {
     @Column(name = "joined_date", updatable = false)
     public LocalDateTime joinedDate;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-    private List<Token> tokens;  // 역방향 관계 설정
-
     public static UserDto toDTO(User user) {
         return UserDto.builder()
                 .userId(user.getUserId())

@@ -1,14 +1,20 @@
 package com.example.tdw_backend.security;
 
 import com.example.tdw_backend.entity.User;
+import com.example.tdw_backend.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
+import java.util.Base64;
 import java.util.Date;
 
 @Slf4j
@@ -24,18 +30,20 @@ public class JwtTokenProvider {
     @Value("${app.jwtSecret}")
     private String jwtSecret;
 
+    @Autowired
+    private UserRepository userRepository;
+
     // AccessToken 생성
     public String createAccessToken(User user) {
-        var signingKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);  // 512 비트 키 생성
+        var signingKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(jwtSecret));
 
         try {
-            String accessToken = Jwts.builder()
+            return Jwts.builder()
                     .setSubject(user.getEmail())
                     .setIssuedAt(new Date())
                     .setExpiration(new Date(System.currentTimeMillis() + jwtAccessExpirationInMs))
                     .signWith(signingKey, SignatureAlgorithm.HS512)
                     .compact();
-            return accessToken;
         } catch (Exception e) {
             log.error("Error generating tokens1", e);
         }
@@ -44,16 +52,15 @@ public class JwtTokenProvider {
 
     // RefreshToken 생성
     public String createRefreshToken(User user) {
-        var signingKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);  // 512 비트 키 생성
+        var signingKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(jwtSecret));
 
         try {
-            String refreshToken = Jwts.builder()
+            return Jwts.builder()
                     .setSubject(user.getEmail())
                     .setIssuedAt(new Date())
                     .setExpiration(new Date(System.currentTimeMillis() + jwtRefreshExpirationInMs))
                     .signWith(signingKey, SignatureAlgorithm.HS512)
                     .compact();
-            return refreshToken;
         } catch (Exception e) {
             log.error("Error generating tokens2", e);
         }
@@ -62,16 +69,24 @@ public class JwtTokenProvider {
 
     // Token 만료 확인
     public boolean isTokenExpired(String token) {
+        var signingKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(jwtSecret));
+
+        if (token == null) {
+            System.out.println("Token is null");
+            return false; // 기본적으로 false 반환
+        }
         try {
-            Claims claims = Jwts.parserBuilder()  // 새로운 파서 빌더 사용
-                    .setSigningKey(Keys.hmacShaKeyFor(jwtSecret.getBytes()))  // 서명 키 설정
+            Date expiration = Jwts.parserBuilder()
+                    .setSigningKey(signingKey)
                     .build()
                     .parseClaimsJws(token)
-                    .getBody();  // JWT Claims 얻기
-
-            return claims.getExpiration().before(new Date());
+                    .getBody()
+                    .getExpiration();
+            System.out.println("Token expiration time: " + expiration);
+            return expiration.before(new Date());
         } catch (Exception e) {
-            return true;
+            System.out.println("Error parsing token: " + e.getMessage());
+            return true; // 예외 발생 시 만료된 것으로 간주
         }
     }
 
@@ -83,15 +98,46 @@ public class JwtTokenProvider {
         return jwtAccessExpirationInMs;
     }
 
-    // JWT에서 사용자 ID 추출하는 메서드 추가
-    public Long getUserIdFromJWT(String token) {
-        Claims claims = Jwts.parserBuilder()  // 새로운 파서 빌더 사용
-                .setSigningKey(Keys.hmacShaKeyFor(jwtSecret.getBytes()))  // 서명 키 설정
+    // 인증 정보를 가져오는 메서드
+    public Authentication getAuthentication(String token) {
+        String email = getUserEmailFromJWT(token);
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        UserPrincipal userPrincipal = UserPrincipal.create(user);
+
+        return new UsernamePasswordAuthenticationToken(userPrincipal, token, userPrincipal.getAuthorities());
+    }
+
+    // JWT에서 이메일을 추출하는 메서드
+    private String getUserEmailFromJWT(String token) {
+
+        var signingKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(jwtSecret));  // jwtSecret을 사용해 서명 키 생성
+
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(signingKey)
                 .build()
                 .parseClaimsJws(token)
-                .getBody();  // JWT Claims 얻기
+                .getBody();
 
-        // 예를 들어, 사용자 ID는 'sub' 클레임에 저장된다고 가정하고 가져옵니다.
-        return Long.parseLong(claims.getSubject());  // 'subject'는 일반적으로 사용자 ID나 이메일 등을 저장
+        return claims.getSubject();
+    }
+
+    // JWT에서 Claims를 가져오는 메서드
+    public Claims getClaimsFromToken(String token) {
+        var signingKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(jwtSecret));  // jwtSecret을 사용해 서명 키 생성
+
+        return Jwts.parserBuilder()
+                .setSigningKey(signingKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+    }
+
+
+    public String getTokenFromAuthorizationHeader(String authorizationHeader) {
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            return authorizationHeader.substring(7);
+        }
+        throw new IllegalArgumentException("Invalid Authorization header");
     }
 }

@@ -6,8 +6,10 @@ import com.example.tdw_backend.entity.User;
 import com.example.tdw_backend.payload.JwtAuthenticationResponse;
 import com.example.tdw_backend.payload.LoginRequest;
 import com.example.tdw_backend.payload.SignUpRequest;
+import com.example.tdw_backend.security.JwtTokenProvider;
 import com.example.tdw_backend.security.JwtTokenService;
 import com.example.tdw_backend.service.UserService;
+import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,6 +22,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
 
 @Slf4j
 @RestController
@@ -38,6 +42,9 @@ public class UserController {
 
     @Autowired
     private JwtTokenService jwtTokenService;
+
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
 
     @Autowired
     public UserController(AuthenticationManager authenticationManager, UserService userService, UserRepository userRepository) {
@@ -86,7 +93,7 @@ public class UserController {
             String accessToken = token.getAccessToken();
             String refreshToken = token.getRefreshToken();
 
-            return ResponseEntity.ok(new JwtAuthenticationResponse(accessToken, refreshToken));
+            return ResponseEntity.ok(new JwtAuthenticationResponse(user.getUserId(), accessToken, refreshToken));
         } catch (BadCredentialsException e) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED); // 비밀번호가 틀린 경우
         } catch (Exception e) {
@@ -105,5 +112,38 @@ public class UserController {
     @GetMapping("/api/users/validate-nickname")
     public ResponseEntity<Boolean> validateNickname(@RequestParam("nickname") String nickname) {
         return ResponseEntity.ok(userService.validateNickname(nickname));
+    }
+
+    // 마이페이지
+    @GetMapping("/api/users/{userId}")
+    public ResponseEntity<User> getMyPage(@PathVariable("userId") Long userId,
+                                          @RequestHeader("Authorization") String authorization) {
+
+        System.out.println("authorization: " + authorization);
+
+        // Bearer 토큰 추출
+        String token;
+        try {
+            token = jwtTokenProvider.getTokenFromAuthorizationHeader(authorization);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        // 토큰 만료 여부 검증
+        if (jwtTokenProvider.isTokenExpired(token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        // 토큰에서 이메일 추출
+        Claims claims = jwtTokenProvider.getClaimsFromToken(token);
+        String userEmail = claims.getSubject();
+
+        // 이메일과 ID 일치 여부 검증
+        Optional<User> user = userService.getMyPage(userId);
+        if (user.isPresent() && user.get().getEmail().equals(userEmail)) {
+            return ResponseEntity.ok(user.get());
+        }
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 }

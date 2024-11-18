@@ -4,13 +4,12 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -23,38 +22,40 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private JwtTokenProvider tokenProvider;
 
-    @Autowired
-    private CustomUserDetailsService customUserDetailsService;
-
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
+    private final String HEADER = "Authorization";
+    private final String PREFIX = "Bearer ";
+
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(@NotNull HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull FilterChain filterChain)
+            throws ServletException, IOException {
+        String jwt = getJwtFromRequest(request);
+        System.out.println("Authorization Header: " + jwt);
 
-        try {
-            String jwt = getJwtFromRequest(request);
+        if (jwt != null && !tokenProvider.isTokenExpired(jwt)) { // 토큰이 유효한 경우
+            System.out.println("Token is valid and not expired.");
+            Authentication authentication = tokenProvider.getAuthentication(jwt);
 
-            if (StringUtils.hasText(jwt) && tokenProvider.isTokenExpired(jwt)) {
-                Long userId = tokenProvider.getUserIdFromJWT(jwt);
+            System.out.println("Authentication Object: " + authentication);
 
-                UserDetails userDetails = customUserDetailsService.loadUserById(userId);
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
+            if (authentication != null) {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+            } else {
+                System.out.println("Authentication object is null.");
             }
-        } catch (Exception ex) {
-            logger.error("Could not set user authentication in security context", ex);
+        } else {
+            System.out.println("Token is invalid or expired.");
         }
-
+        System.out.println("SecurityContext: " + SecurityContextHolder.getContext().getAuthentication());
         filterChain.doFilter(request, response);
     }
 
     private String getJwtFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
+
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
+            return bearerToken.substring(7); // 'Bearer ' 이후의 실제 토큰만 반환
         }
         return null;
     }

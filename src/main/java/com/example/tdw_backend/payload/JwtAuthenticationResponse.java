@@ -7,19 +7,16 @@ import lombok.Setter;
 @Setter
 public class JwtAuthenticationResponse {
 
+    private Long userId;
+    @Setter
     private String accessToken;
+    @Setter
     private String refreshToken;
 
-    public JwtAuthenticationResponse(String accessToken, String refreshToken) {
+    public JwtAuthenticationResponse(Long userId, String accessToken, String refreshToken) {
+        this.userId = userId;
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
     }
 
-    public void setAccessToken(String accessToken) {
-        this.accessToken = accessToken;
-    }
-
-    public void setRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
-    }
 }

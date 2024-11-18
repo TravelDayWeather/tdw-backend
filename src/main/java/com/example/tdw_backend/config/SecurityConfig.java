@@ -46,8 +46,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/login", "/api/signup", "/api/users/validate-email", "/api/users/validate-nickname").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(unauthorizedHandler))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                );
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(corsFilter(), UsernamePasswordAuthenticationFilter.class);  // CORS 필터 추가
         http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -61,6 +61,7 @@ public class SecurityConfig {
         config.addAllowedOrigin("http://localhost:3000");  // Vue 개발 서버 주소
         config.addAllowedMethod("*");
         config.addAllowedHeader("*");
+        config.setAllowCredentials(true);
         source.registerCorsConfiguration("/**", config);
         return new CorsFilter(source);
     }
