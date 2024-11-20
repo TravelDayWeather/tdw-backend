@@ -22,7 +22,7 @@ public class AuthorizationService {
      */
     public String extractToken(String authorizationHeader) {
         try {
-            return jwtTokenProvider.getTokenFromAuthorizationHeader(authorizationHeader);
+            return JwtTokenProvider.getTokenFromAuthorizationHeader(authorizationHeader);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authorization header");
         }

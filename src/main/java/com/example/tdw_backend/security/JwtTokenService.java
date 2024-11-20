@@ -12,7 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -26,6 +28,16 @@ public class JwtTokenService {
 
     @Autowired
     private UserRepository userRepository;
+
+    private final Set<String> invalidatedTokens = new HashSet<>();
+
+    public void invalidateToken(String token) {
+        invalidatedTokens.add(token);
+    }
+
+    public boolean isTokenInvalidated(String token) {
+        return invalidatedTokens.contains(token);
+    }
 
     // 로그인 시 기존 AccessToken이 있으면 그대로 사용하고, 만료되면 RefreshToken을 발급
     @Transactional

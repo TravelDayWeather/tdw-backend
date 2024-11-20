@@ -134,7 +134,7 @@ public class JwtTokenProvider {
     }
 
 
-    public String getTokenFromAuthorizationHeader(String authorizationHeader) {
+    public static String getTokenFromAuthorizationHeader(String authorizationHeader) {
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             return authorizationHeader.substring(7);
         }

@@ -50,6 +50,9 @@ public class UserController {
     private AuthorizationService authorizationService;
 
     @Autowired
+    private JwtTokenProvider jwtTokenProvider;
+
+    @Autowired
     public UserController(AuthenticationManager authenticationManager, UserService userService, UserRepository userRepository) {
         this.authenticationManager = authenticationManager;
         this.userService = userService;
@@ -144,5 +147,26 @@ public class UserController {
 
         User updatedUser = userService.updateMyPage(userId, userUpdateRequest);
         return ResponseEntity.ok(updatedUser);
+    }
+
+    // 로그아웃
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestHeader("Authorization") String authorization) {
+        String token;
+        try {
+            token = JwtTokenProvider.getTokenFromAuthorizationHeader(authorization);
+
+            jwtTokenService.isTokenInvalidated(token);
+
+            // 토큰이 만료된 경우, 바로 로그아웃 처리
+            if (jwtTokenProvider.isTokenExpired(token)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("토큰이 만료되었습니다. 다시 로그인해주세요.");
+            }
+
+            jwtTokenService.invalidateToken(token);
+            return ResponseEntity.ok("로그아웃 성공");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("잘못된 요청입니다.");
+        }
     }
 }
