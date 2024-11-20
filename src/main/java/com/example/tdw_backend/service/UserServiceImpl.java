@@ -2,6 +2,7 @@ package com.example.tdw_backend.service;
 
 import com.example.tdw_backend.entity.User;
 import com.example.tdw_backend.payload.SignUpRequest;
+import com.example.tdw_backend.payload.UserUpdateRequest;
 import com.example.tdw_backend.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -52,9 +53,24 @@ public class UserServiceImpl implements UserService {
         return userRepository.existsByNickname(nickname);
     }
 
+    // 마이페이지
     @Override
     public Optional<User> getMyPage(Long userId) {
         return Optional.ofNullable(userRepository.findByUserId(userId));
-
     }
+
+    // 마이페이지 수정
+    @Override
+    public User updateMyPage(Long userId, UserUpdateRequest userUpdateRequest) {
+        User user = userRepository.findByUserId(userId);
+
+        user.setNickname(userUpdateRequest.getNickname());
+        user.setPhone(userUpdateRequest.getPhone());
+
+        userRepository.save(user);
+
+        return user;
+    }
+
+
 }

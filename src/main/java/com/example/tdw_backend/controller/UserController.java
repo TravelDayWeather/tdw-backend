@@ -1,6 +1,7 @@
 package com.example.tdw_backend.controller;
 
 import com.example.tdw_backend.entity.Token;
+import com.example.tdw_backend.payload.UserUpdateRequest;
 import com.example.tdw_backend.repository.UserRepository;
 import com.example.tdw_backend.entity.User;
 import com.example.tdw_backend.payload.JwtAuthenticationResponse;
@@ -8,6 +9,7 @@ import com.example.tdw_backend.payload.LoginRequest;
 import com.example.tdw_backend.payload.SignUpRequest;
 import com.example.tdw_backend.security.JwtTokenProvider;
 import com.example.tdw_backend.security.JwtTokenService;
+import com.example.tdw_backend.service.AuthorizationService;
 import com.example.tdw_backend.service.UserService;
 import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +29,7 @@ import java.util.Optional;
 
 @Slf4j
 @RestController
+@RequestMapping("/api")
 public class UserController {
 
     private final AuthenticationManager authenticationManager;
@@ -44,7 +47,7 @@ public class UserController {
     private JwtTokenService jwtTokenService;
 
     @Autowired
-    private JwtTokenProvider jwtTokenProvider;
+    private AuthorizationService authorizationService;
 
     @Autowired
     public UserController(AuthenticationManager authenticationManager, UserService userService, UserRepository userRepository) {
@@ -54,7 +57,7 @@ public class UserController {
     }
 
     // 회원가입
-    @PostMapping("/api/signup")
+    @PostMapping("/signup")
     public ResponseEntity<User> signUp(@RequestBody SignUpRequest signUpRequest) {
         if (signUpRequest == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -65,7 +68,7 @@ public class UserController {
     }
 
     // 로그인
-    @PostMapping("/api/login")
+    @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         if (loginRequest == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -103,47 +106,43 @@ public class UserController {
 
 
     // 이메일 중복체크
-    @GetMapping("/api/users/validate-email")
+    @GetMapping("/users/validate-email")
     public ResponseEntity<Boolean> validateEmail(@RequestParam("email") String email) {
         return ResponseEntity.ok(userService.validateEmail(email));
     }
 
     // 닉네임 중복체크
-    @GetMapping("/api/users/validate-nickname")
+    @GetMapping("/users/validate-nickname")
     public ResponseEntity<Boolean> validateNickname(@RequestParam("nickname") String nickname) {
         return ResponseEntity.ok(userService.validateNickname(nickname));
     }
 
     // 마이페이지
-    @GetMapping("/api/users/{userId}")
+    @GetMapping("/users/{userId}")
     public ResponseEntity<User> getMyPage(@PathVariable("userId") Long userId,
                                           @RequestHeader("Authorization") String authorization) {
+        String token = authorizationService.extractToken(authorization);
+        authorizationService.validateToken(token);
 
-        System.out.println("authorization: " + authorization);
-
-        // Bearer 토큰 추출
-        String token;
-        try {
-            token = jwtTokenProvider.getTokenFromAuthorizationHeader(authorization);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        // 토큰 만료 여부 검증
-        if (jwtTokenProvider.isTokenExpired(token)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        // 토큰에서 이메일 추출
-        Claims claims = jwtTokenProvider.getClaimsFromToken(token);
-        String userEmail = claims.getSubject();
-
-        // 이메일과 ID 일치 여부 검증
+        String userEmail = authorizationService.getUserEmailFromToken(token);
         Optional<User> user = userService.getMyPage(userId);
+
         if (user.isPresent() && user.get().getEmail().equals(userEmail)) {
             return ResponseEntity.ok(user.get());
         }
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    }
+
+    // 마이페이지 수정
+    @PatchMapping("/users/{userId}")
+    public ResponseEntity<User> updateMyPage(@PathVariable("userId") Long userId,
+                                             @RequestBody UserUpdateRequest userUpdateRequest,
+                                             @RequestHeader("Authorization") String authorization) {
+        String token = authorizationService.extractToken(authorization);
+        authorizationService.validateToken(token);
+
+        User updatedUser = userService.updateMyPage(userId, userUpdateRequest);
+        return ResponseEntity.ok(updatedUser);
     }
 }

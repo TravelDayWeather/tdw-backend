@@ -73,7 +73,7 @@ public class JwtTokenProvider {
 
         if (token == null) {
             System.out.println("Token is null");
-            return false; // 기본적으로 false 반환
+            return false;
         }
         try {
             Date expiration = Jwts.parserBuilder()
@@ -111,7 +111,7 @@ public class JwtTokenProvider {
     // JWT에서 이메일을 추출하는 메서드
     private String getUserEmailFromJWT(String token) {
 
-        var signingKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(jwtSecret));  // jwtSecret을 사용해 서명 키 생성
+        var signingKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(jwtSecret));
 
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(signingKey)
@@ -124,7 +124,7 @@ public class JwtTokenProvider {
 
     // JWT에서 Claims를 가져오는 메서드
     public Claims getClaimsFromToken(String token) {
-        var signingKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(jwtSecret));  // jwtSecret을 사용해 서명 키 생성
+        var signingKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(jwtSecret));
 
         return Jwts.parserBuilder()
                 .setSigningKey(signingKey)

@@ -2,6 +2,7 @@ package com.example.tdw_backend.service;
 
 import com.example.tdw_backend.entity.User;
 import com.example.tdw_backend.payload.SignUpRequest;
+import com.example.tdw_backend.payload.UserUpdateRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -20,4 +21,7 @@ public interface UserService {
 
     // 마이페이지
     Optional<User> getMyPage(Long userId);
+
+    // 마이페이지 수정
+    User updateMyPage(Long userId, UserUpdateRequest userUpdateRequest);
 }
