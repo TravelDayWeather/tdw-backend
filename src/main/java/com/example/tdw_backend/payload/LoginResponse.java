@@ -5,16 +5,11 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class JwtAuthenticationResponse {
-
-    private Long userId;
-    @Setter
+public class LoginResponse {
     private String accessToken;
-    @Setter
     private String refreshToken;
 
-    public JwtAuthenticationResponse(Long userId, String accessToken, String refreshToken) {
-        this.userId = userId;
+    public LoginResponse(String accessToken, String refreshToken) {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
     }

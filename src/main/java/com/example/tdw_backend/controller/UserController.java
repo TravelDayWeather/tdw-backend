@@ -1,12 +1,9 @@
 package com.example.tdw_backend.controller;
 
 import com.example.tdw_backend.entity.Token;
-import com.example.tdw_backend.payload.UserUpdateRequest;
+import com.example.tdw_backend.payload.*;
 import com.example.tdw_backend.repository.UserRepository;
 import com.example.tdw_backend.entity.User;
-import com.example.tdw_backend.payload.JwtAuthenticationResponse;
-import com.example.tdw_backend.payload.LoginRequest;
-import com.example.tdw_backend.payload.SignUpRequest;
 import com.example.tdw_backend.security.JwtTokenProvider;
 import com.example.tdw_backend.security.JwtTokenService;
 import com.example.tdw_backend.service.AuthorizationService;
@@ -104,6 +101,28 @@ public class UserController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED); // 비밀번호가 틀린 경우
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);  // 기타 예외 처리
+        }
+    }
+
+    // refreshToken 생성
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@RequestHeader("Authorization") String refreshToken) {
+        try {
+            String email = jwtTokenProvider.getClaimsFromToken(refreshToken).getSubject();
+            String newToken = jwtTokenProvider.createAccessToken(email);
+            return ResponseEntity.ok(new LoginResponse(newToken, refreshToken));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+    }
+
+    // token 인증
+    @PostMapping("/validate")
+    public ResponseEntity<?> validateToken(@RequestHeader("Authorization") String token) {
+        if (jwtTokenProvider.isTokenExpired(token)) {
+            return ResponseEntity.ok("Token is valid");
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
         }
     }
 

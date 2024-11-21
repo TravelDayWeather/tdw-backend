@@ -34,12 +34,12 @@ public class JwtTokenProvider {
     private UserRepository userRepository;
 
     // AccessToken 생성
-    public String createAccessToken(User user) {
+    public String createAccessToken(String email) {
         var signingKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(jwtSecret));
 
         try {
             return Jwts.builder()
-                    .setSubject(user.getEmail())
+                    .setSubject(email)
                     .setIssuedAt(new Date())
                     .setExpiration(new Date(System.currentTimeMillis() + jwtAccessExpirationInMs))
                     .signWith(signingKey, SignatureAlgorithm.HS512)
@@ -51,12 +51,12 @@ public class JwtTokenProvider {
     }
 
     // RefreshToken 생성
-    public String createRefreshToken(User user) {
+    public String createRefreshToken(String email) {
         var signingKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(jwtSecret));
 
         try {
             return Jwts.builder()
-                    .setSubject(user.getEmail())
+                    .setSubject(email)
                     .setIssuedAt(new Date())
                     .setExpiration(new Date(System.currentTimeMillis() + jwtRefreshExpirationInMs))
                     .signWith(signingKey, SignatureAlgorithm.HS512)

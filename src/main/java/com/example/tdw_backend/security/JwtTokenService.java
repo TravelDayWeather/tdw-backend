@@ -55,7 +55,7 @@ public class JwtTokenService {
             // AccessToken이 만료되었으면 RefreshToken 발급
             if (jwtTokenProvider.isTokenExpired(token.getAccessToken())) {
                 // RefreshToken 발급
-                String refreshToken = jwtTokenProvider.createRefreshToken(user);
+                String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());
                 token.setRefreshToken(refreshToken);
                 token.setRefreshTokenExpiryDate(Instant.now().plusMillis(jwtTokenProvider.getRefreshExpirationTime()));
 
@@ -70,7 +70,7 @@ public class JwtTokenService {
             Token token = new Token();
             token.setUser(user);
 
-            String accessToken = jwtTokenProvider.createAccessToken(user);
+            String accessToken = jwtTokenProvider.createAccessToken(user.getEmail());
 
             token.setAccessToken(accessToken);
             token.setRefreshToken(null);
