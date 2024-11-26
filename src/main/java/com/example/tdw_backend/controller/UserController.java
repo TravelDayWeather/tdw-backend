@@ -2,6 +2,7 @@ package com.example.tdw_backend.controller;
 
 import com.example.tdw_backend.entity.Token;
 import com.example.tdw_backend.payload.*;
+import com.example.tdw_backend.repository.TokenRepository;
 import com.example.tdw_backend.repository.UserRepository;
 import com.example.tdw_backend.entity.User;
 import com.example.tdw_backend.security.JwtTokenProvider;
@@ -11,6 +12,7 @@ import com.example.tdw_backend.service.UserService;
 import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,6 +24,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Date;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -30,6 +34,12 @@ import java.util.Optional;
 public class UserController {
 
     private final AuthenticationManager authenticationManager;
+
+    @Value("${app.jwtAccessExpirationInMs}")
+    private Long jwtAccessExpirationInMs;
+
+    @Value("${app.jwtRefreshExpirationInMs}")
+    private Long jwtRefreshExpirationInMs;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -41,6 +51,9 @@ public class UserController {
     private final UserRepository userRepository;
 
     @Autowired
+    private final TokenRepository tokenRepository;
+
+    @Autowired
     private JwtTokenService jwtTokenService;
 
     @Autowired
@@ -50,10 +63,11 @@ public class UserController {
     private JwtTokenProvider jwtTokenProvider;
 
     @Autowired
-    public UserController(AuthenticationManager authenticationManager, UserService userService, UserRepository userRepository) {
+    public UserController(AuthenticationManager authenticationManager, UserService userService, UserRepository userRepository, TokenRepository tokenRepository) {
         this.authenticationManager = authenticationManager;
         this.userService = userService;
         this.userRepository = userRepository;
+        this.tokenRepository = tokenRepository;
     }
 
     // 회원가입
@@ -105,14 +119,40 @@ public class UserController {
     }
 
     // refreshToken 생성
-    @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@RequestHeader("Authorization") String refreshToken) {
+    @PostMapping("/auth/refresh")
+    public ResponseEntity<?> refreshAccessToken(@RequestHeader("Authorization") String refreshToken) {
         try {
-            String email = jwtTokenProvider.getClaimsFromToken(refreshToken).getSubject();
-            String newToken = jwtTokenProvider.createAccessToken(email);
-            return ResponseEntity.ok(new LoginResponse(newToken, refreshToken));
+            String refreshTokenRpl = refreshToken.replace("Bearer ", "");
+
+            // 1. DB에서 리프레시 토큰 검증
+            User user = tokenRepository.findByRefreshToken(refreshTokenRpl);
+
+            // 2. 리프레시 토큰 유효성 확인
+            if (jwtTokenProvider.isTokenExpired(refreshTokenRpl)) {
+
+                // 3. 새 액세스 토큰 및 리프레시 토큰 생성
+                String newAccessToken = jwtTokenProvider.createAccessToken(user.getEmail());
+                String newRefreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());
+
+                // 4. DB에 리프레시 토큰 업데이트
+                Token token = new Token();
+                token.setAccessToken(newAccessToken);
+                token.setAccessTokenExpiryDate(new Date(System.currentTimeMillis() + jwtAccessExpirationInMs).toInstant());
+                token.setRefreshToken(newRefreshToken);
+                token.setRefreshTokenExpiryDate(new Date(System.currentTimeMillis() + jwtRefreshExpirationInMs).toInstant());
+                tokenRepository.save(token);
+
+                // 5. 새로운 토큰 반환
+                Map<String, String> tokens = Map.of(
+                        "accessToken", newAccessToken,
+                        "refreshToken", newRefreshToken
+                );
+                return ResponseEntity.ok(tokens);
+            } else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid refresh token");
+            }
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error refreshing token");
         }
     }
 
@@ -125,7 +165,6 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
         }
     }
-
 
     // 이메일 중복체크
     @GetMapping("/users/validate-email")

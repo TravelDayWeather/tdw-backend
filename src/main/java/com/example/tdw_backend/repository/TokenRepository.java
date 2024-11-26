@@ -22,4 +22,5 @@ public interface TokenRepository extends JpaRepository<Token, Long> {
      */
     int deleteByUser(User user);
 
+    User findByRefreshToken(String token);
 }
